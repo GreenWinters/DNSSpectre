@@ -37,7 +37,8 @@ path : Path to prexisting text or json zone file. This code assumes there is onl
     SOA, A, and NS DSN record in the zone file. Be mindful that spaces in the path's directory names
     will trigger errors in the AWS CLI
 ip: one or more space separated valid IPv4 addresses
-num: integer for the number of records to generate for each valid and unused public IPv4 address
+num: integer for the number of records to generate for each valid and unused public IPv4 address. 
+    Must be equal to or less than list of subdomain prefixes provided.
 upload: flag to upload records into the new hosted zone, using the AWS CLI command. 
     AWS CLI must be installed
 host_id: Hosted Zone ID, required parameter for uploading generated DNS Records into AWS Hosted Zone
@@ -63,7 +64,7 @@ parser = argparse.ArgumentParser()
 parser.add_argument("-path", "-p",type=str, required = True,
                     help="the path to zone file")
 parser.add_argument("-ip", "-ip",type=str, nargs="+", required = True,
-                    help="space separated ip address(es) used to generate fake DNS records to")
+                    help="space separated ipv4 address(es) used to generate dummy DNS records to")
 parser.add_argument("-num", "-n",type=int,
                     help="Number of records to generate per IP address. Must be equal to or less than 34")
 parser.add_argument("-upload", "-u",action="store_true", 
@@ -80,7 +81,7 @@ if args.num is not None:
     assert args.num <= 34, "Number of records passed is greater than 34. Give a integer less than or equal to 34."
     numRec = args.num
 else:
-    numRec = random.randint(0, 34) # Generate a random number of records if none is passed to CLI
+    numRec = random.randint(1, 34) # Generate a random number of records if none is passed to CLI
 
 
 f = open(inputPath,) # Open JSON file
@@ -125,7 +126,7 @@ def generateDNSRecords(inputIP: list, n: int, subDomainList: list,
         selectedSubDomain = random.choices(subDomainList, k=n)
         for subDomain in selectedSubDomain:
             if subDomain in ["mail","webmail"]:
-                thirdDomainDict[subDomain] = {
+                thirdDomainDict[subDomain+"_MX"] = {
                     #Create a Mail Exchanger Record
                     "Action": "CREATE",
                     "ResourceRecordSet":
@@ -134,7 +135,9 @@ def generateDNSRecords(inputIP: list, n: int, subDomainList: list,
                         "Type": "MX",
                         "TTL": 60,
                         "ResourceRecords": [{"Value": subDomain + "."+ domainName}]
-                    },
+                    }
+                }
+                thirdDomainDict[subDomain] = {
                     # MX Records need to have its own 'A' record that resolves to valid IP address
                     # 'A' Records require AliasTarget, all of [TTL and ResourceRecords], or 
                     # TrafficPolicyInstanceId
@@ -155,18 +158,17 @@ def generateDNSRecords(inputIP: list, n: int, subDomainList: list,
                 thirdDomainDict[subDomain] = {
                     "Action": "CREATE",
                     "ResourceRecordSet":
-                    {
-                        "Name": "_xmpp-client."+protocol+ "."+domainName+".",
-                        # Extensible Messaging and Presence 
+                    {   # Extensible Messaging and Presence 
                         # Protocol (XMPP) is an open XML technology 
                         # for real-time communication.
+                        "Name": "_xmpp-client."+protocol+ "."+domainName+".",
                         "Type": "SRV",
                         "TTL": 86400,
-                        "ResourceRecords": [{"Value": "1 10 " + str(port)+ " slack."+domainName}]
+                        "ResourceRecords": [{"Value": "1 10 " + str(port)+ " discord."+domainName}]
                     }
                 }
                 """ 
-                For a SRV record, values = 
+                For a SRV record, Value = 
                     - priority (priority of the target host, lower value means more preferred),
                     - weight (A relative weight for records with the same priority.),
                     - port (TCP or UDP port on which the service is to be found), and
@@ -210,14 +212,6 @@ def generateDNSRecords(inputIP: list, n: int, subDomainList: list,
                         "TTL": 300
                     }
                 }    
-    '''
-    To find the correct AWS DSNName:
-        * Open the Amazon EC2 console
-        * In the navigation pane, choose Instances. 
-        * Select your instance from the list. 
-        * In the details pane, the Public DNS (IPv4) and Private DNS 
-        fields display the DNS hostnames
-    '''
     output = {"Changes": list(thirdDomainDict.values())} 
     
     return output
