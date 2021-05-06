@@ -22,8 +22,8 @@ Reference: https://www.linode.com/docs/guides/dns-records-an-introduction/
 
 
 #### Execution
- <pre><code>python DNSSpecter.py -path C:path\DNSRecords.txt -ip ipv4.000.000.000  123.123.123.123 456.456.456.456</code></pre>
- <pre><code>python DNSSpecter.py -path C:path\DNSRecords.txt -ip ipv4.000.000.000 -num 3  -upload -host_id XXXXXXXXXXXXXXX</code></pre>
+ <pre><code>python DNSSpecter.py -path C:path\DNSRecords.txt -ip 000.000.000  123.123.123.123 456.456.456.456</code></pre>
+ <pre><code>python DNSSpecter.py -path C:path\DNSRecords.txt -ip 000.000.000 -num 3  -upload -host_id XXXXXXXXXXXXXXX</code></pre>
  
  
  #### Command Line Interface Options
